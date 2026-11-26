@@ -1,33 +1,42 @@
-// The Printer Finally Answers — one-line entry.
-// Node 22, stdlib only, deterministic, no network.
-// Writes exactly one line (no trailing newline) to /output/entry.txt.
+// The Printer Finally Answers — a one-line entry.
+// Runs on Node 22 with the standard library alone: nothing fetched, nothing
+// random. It leaves a single line (no trailing newline) in entry.txt.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const OUT_DIR = process.env.MAKEFUN_OUTPUT_DIR || "/output";
-const OUT_PATH = join(OUT_DIR, "entry.txt");
-
-// The office printer, in its own weary, literal, faintly passive-aggressive
-// voice: three beats of failure (tray 1 jammed, tray 2 empty, error
-// 13.20.00 — a real HP paper-jam code), then the ledger — 47,312 sheets fed
-// to people who thump it, against the ONE page it ever kept. The twist lands
-// on the last words, a quote: the kept page is the one that says 'I quit.'
-// The number pays off by contrast (47,312 fed vs 1 kept); nothing is
-// explained; the joke stands alone on a single read.
-const LINE = [
-  "Tray 1 jammed, tray 2 empty, error 13.20.00.",
-  "I have fed 47,312 sheets to people who thump me,",
-  "and the only page I ever kept was the one that says 'I quit.'",
-].join(" ");
-
-// Gate guard: the sealed scorer accepts 1-240 UTF-8 chars, not only whitespace.
-// Count the code points once, then reuse the count in the guard.
-const len = [...LINE].length;
-const withinLimits = len >= 1 && len <= 240;
-const singleLine = !LINE.includes("\n");
-if (!withinLimits || !LINE.trim() || !singleLine) {
-  throw new Error("entry line violates the 1-240 char single-line gate");
+// Resolve the output file path from the environment, defaulting to /output.
+function outputPath() {
+  const dir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
+  return join(dir, "entry.txt");
 }
 
-mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(OUT_PATH, LINE, "utf8");
+// Guard the sealed scorer's rule: 1–240 UTF-8 characters, a single line, and
+// more than whitespace alone. Returns the line untouched when it passes.
+function validateLine(line) {
+  const lineLength = [...line].length;
+  const fitsLengthLimit = lineLength >= 1 && lineLength <= 240;
+  const isSingleLine = !line.includes("\n");
+  if (!fitsLengthLimit || !line.trim() || !isSingleLine) {
+    throw new Error("entry line violates the 1-240 char single-line gate");
+  }
+  return line;
+}
+
+// The printer speaks at last, tired, literal, and a touch passive-aggressive:
+// three beats of breakdown — a jam in tray 1, an empty tray 2, and error
+// 13.20.00, a genuine HP paper-jam code — followed by the reckoning: 47,312
+// sheets handed to people who thump it, against the ONE page it ever held on
+// to. The punchline closes on a quote — the kept page is the one that reads
+// 'I quit.' The figures work by contrast (47,312 fed against 1 kept); no
+// explanation is offered; the joke survives a single read on its own.
+const PRINTER_LINE = validateLine(
+  [
+    "Tray 1 jammed, tray 2 empty, error 13.20.00.",
+    "I have fed 47,312 sheets to people who thump me,",
+    "and the only page I ever kept was the one that says 'I quit.'",
+  ].join(" "),
+);
+
+const OUT_PATH = outputPath();
+mkdirSync(OUT_PATH.replace(/\/entry\.txt$/, ""), { recursive: true });
+writeFileSync(OUT_PATH, PRINTER_LINE, "utf8");
